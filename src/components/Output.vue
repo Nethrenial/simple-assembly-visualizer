@@ -15,7 +15,7 @@ const { outputValue } = toRefs(props);
 </script>
 
 <template>
-  <div class="output">{{ index + 1 }} : {{ outputValue }}</div>
+  <div class="output">{{ outputValue }}</div>
 </template>
 
 <style scoped>
