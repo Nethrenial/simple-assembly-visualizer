@@ -134,6 +134,7 @@ const file = ref("");
 let reader: FileReader | null = null;
 let instructionLines: string[] = [];
 let nextInstruction = ref("");
+let prevInstruction = ref("");
 
 const previousStates: Ref<Array<State>> = ref([]);
 
@@ -158,14 +159,28 @@ const executeNext = () => {
   } else {
     if (!reg.value["halt"] && !isFinished.value) {
       isAtStart.value = false;
+      console.log(nextInstruction.value);
+
       previousStates.value.push({
         memoryState: Object.assign({}, memory.value),
         registersState: Object.assign({}, reg.value),
+        nextInstruction: `${(
+          memory.value.store[reg.value["pc"]] as string[]
+        ).join(" ")}`,
+        prevInstruction: `${prevInstruction.value}`,
       });
+
+      prevInstruction.value = nextInstruction.value;
 
       let i = reg.value["pc"] as number;
       let instruction =
         instructions[(memory.value.store[i] as string[])[0] as string];
+      if (((memory.value.store[i] as string[])[0] as string) === "halt") {
+        isFinished.value = true;
+        previousStates.value[previousStates.value.length - 1].nextInstruction =
+          "halt";
+        console.log(previousStates.value);
+      }
       instruction((memory.value.store[i] as string[]).slice(1));
       reg.value["timer"] = (reg.value["timer"] as number) - 1;
       if (reg.value["int"] === 1 && reg.value["timer"] === 0) {
@@ -174,49 +189,32 @@ const executeNext = () => {
         reg.value["pc"] = reg.value["ivec"];
         reg.value["int"] = 0;
       }
-      console.log(memory.value.store[reg.value["pc"]]);
       const stringArr = memory.value.store[reg.value["pc"]];
       if (stringArr) {
         nextInstruction.value = (stringArr as string[]).join(" ");
-      } else {
-        isFinished.value = true;
       }
     }
   }
 };
 
-const executePrevious = () => {
-  if (instructionLines.length === 0 || !reader) {
-    console.log("Not any instructions");
-  } else {
-    if (previousStates.value.length > 0) {
-      console.log(previousStates.value.length);
-      isFinished.value = false;
-
-      const previousState = previousStates.value.pop() as State;
-
-      reg.value = previousState.registersState;
-      memory.value = previousState.memoryState;
-
-      nextInstruction.value = (
-        memory.value.store[reg.value["pc"] as number] as string[]
-      ).join(" ");
-      let i = reg.value["pc"] as number;
-      let instruction =
-        instructions[(memory.value.store[i] as string[])[0] as string];
-      instruction((memory.value.store[i] as string[]).slice(1));
-      reg.value["timer"] = (reg.value["timer"] as number) - 1;
-      if (reg.value["int"] === 1 && reg.value["timer"] === 0) {
-        reg.value["sp"] = (reg.value["sp"] as number) + 1;
-        memory.value.store[reg.value["sp"]] = reg.value["pc"] as number;
-        reg.value["pc"] = reg.value["ivec"];
-        reg.value["int"] = 0;
-      }
+const goBack = () => {
+  if (previousStates.value.length > 0) {
+    isFinished.value = false;
+    const previousState = previousStates.value.pop() as State;
+    reg.value = previousState.registersState;
+    memory.value = previousState.memoryState;
+    nextInstruction.value = previousState.nextInstruction;
+    prevInstruction.value = previousState.prevInstruction;
+    if (previousState.nextInstruction.startsWith("out")) {
+      outputs.value.outputs.pop();
+    }
+    if (previousStates.value.length === 0) {
+      isAtStart.value = true;
     }
   }
 };
 
-const logFile = (e: Event) => {
+const loadFile = (e: Event) => {
   if ((e.target as HTMLInputElement).files?.length != 0) {
     isFileUploaded.value = true;
     reader = new FileReader();
@@ -277,6 +275,8 @@ const reset = () => {
   outputs.value = {
     outputs: [],
   };
+  nextInstruction.value = "";
+  prevInstruction.value = "";
 };
 </script>
 
@@ -284,29 +284,36 @@ const reset = () => {
   <div class="input-and-reset">
     <div class="buttons">
       <AssemblyFileInput
-        @asm-file-selected="logFile"
+        @asm-file-selected="loadFile"
         :is-file-uploaded="isFileUploaded"
         :file-name="file"
       />
       <ResetVm @click="reset" />
-      <PrevExecution
-        @click="executePrevious"
-        :is-disabled="isPrevButtonDisabled"
-      />
+      <PrevExecution @click="goBack" :is-disabled="isPrevButtonDisabled" />
       <NextExecution @click="executeNext" :is-disabled="isNextButtonDisabled" />
     </div>
 
-    <div class="instruction">
-      <strong>
+    <div class="instructions">
+      <div class="prev">
+        <span v-if="!isAtStart">
+          {{ isFileUploaded ? "PREV :  " : "FILE NOT SELECTED" }}
+        </span>
+        <strong class="instruction" v-if="!isAtStart">
+          {{ isFileUploaded ? prevInstruction : "" }}
+        </strong>
+      </div>
+      <div class="next">
         {{
           isFileUploaded
             ? isFinished
-              ? "All instructions executed"
-              : `Next Instruction`
-            : "File unavailable !"
+              ? "ENDED"
+              : `NEXT :  `
+            : "FILE NOT SELECTED"
         }}
-      </strong>
-      {{ isFileUploaded ? (isFinished ? "" : " : " + nextInstruction) : "" }}
+        <strong class="instruction" v-if="!isFinished">
+          {{ isFileUploaded ? (isFinished ? "" : nextInstruction) : "" }}
+        </strong>
+      </div>
     </div>
   </div>
   <div class="container">
@@ -364,7 +371,7 @@ body {
   align-items: center;
 }
 
-.instruction {
+.instructions {
   background-color: #333;
   font-size: 2rem;
   flex: 1;
@@ -372,8 +379,32 @@ body {
   color: #fff;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding-left: 2rem;
   height: 100%;
+}
+
+.instruction {
+  background-color: #fff;
+  padding: 1rem;
+  color: #333;
+  margin-left: 1rem;
+  width: 150px;
+  text-align: center;
+}
+
+.prev {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.next {
+  flex: 1;
+  display: flex;
+  align-items: center;
+
+  justify-content: center;
 }
 
 .container {

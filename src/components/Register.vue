@@ -16,20 +16,24 @@ const { regName, regValue } = toRefs(props);
 watch(regValue, (newValue, oldValue) => {
   if (newValue !== oldValue) {
     justChanged.value = true;
+  } else {
+    justUpdated.value = true;
   }
   setTimeout(() => {
     justChanged.value = false;
+    justUpdated.value = false;
   }, 500);
 });
 
 const justChanged = ref(false);
+const justUpdated = ref(false);
 </script>
 
 <template>
   <div
     class="register"
     :style="{
-      backgroundColor: justChanged ? 'red' : '#333',
+      backgroundColor: justChanged ? 'red' : justUpdated ? '#f66c68' : '#333',
     }"
   >
     <div class="name">{{ regName }}</div>
