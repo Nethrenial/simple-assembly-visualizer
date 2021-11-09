@@ -327,7 +327,7 @@ const reset = () => {
       <Outputs :outputs="outputs" />
     </div>
   </div>
-  <footer>Made with 💗 by Nethrenial</footer>
+  <footer>Made with 💗 by Nethsara Sandeepa</footer>
 </template>
 
 <style>

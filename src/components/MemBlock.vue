@@ -14,6 +14,8 @@ const props = defineProps({
 const { index, value } = toRefs(props);
 
 watch(value, (newValue, oldValue) => {
+  // console.log(`${index.value} = ${oldValue} => ${newValue} `);
+
   if (newValue !== oldValue) {
     justChanged.value = true;
   } else {
