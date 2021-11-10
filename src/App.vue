@@ -298,9 +298,9 @@ const reset = () => {
         <span v-if="!isAtStart">
           {{ isFileUploaded ? "PREV :  " : "FILE NOT SELECTED" }}
         </span>
-        <strong class="instruction" v-if="!isAtStart">
+        <span class="instruction" v-if="!isAtStart">
           {{ isFileUploaded ? prevInstruction : "" }}
-        </strong>
+        </span>
       </div>
       <div class="next">
         {{
@@ -310,9 +310,9 @@ const reset = () => {
               : `NEXT :  `
             : "FILE NOT SELECTED"
         }}
-        <strong class="instruction" v-if="!isFinished">
+        <span class="instruction" v-if="!isFinished">
           {{ isFileUploaded ? (isFinished ? "" : nextInstruction) : "" }}
-        </strong>
+        </span>
       </div>
     </div>
   </div>
@@ -327,7 +327,6 @@ const reset = () => {
       <Outputs :outputs="outputs" />
     </div>
   </div>
-  <footer>Made with 💗 by Nethsara Sandeepa</footer>
 </template>
 
 <style>
@@ -349,6 +348,7 @@ body {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #eee;
 }
 
 .input-and-reset {
@@ -356,10 +356,10 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 70px;
+  height: 50px;
   z-index: 10;
   border-bottom: 2px solid #333;
-  background-color: #fff;
+  background-color: #333;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -381,16 +381,18 @@ body {
   align-items: center;
   justify-content: space-between;
   padding-left: 2rem;
-  height: 100%;
+  height: 90%;
 }
 
 .instruction {
   background-color: #fff;
-  padding: 1rem;
+  padding: 0.5rem;
   color: #333;
   margin-left: 1rem;
   width: 150px;
   text-align: center;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 .prev {
@@ -398,19 +400,21 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 200;
 }
 .next {
   flex: 1;
   display: flex;
   align-items: center;
-
   justify-content: center;
+  font-weight: 200;
 }
 
 .container {
   background-color: #eee;
-  margin-top: 70px;
+  margin-top: 50px;
   display: grid;
+  min-height: calc(100vh - 50px);
   grid-template-areas:
     "reg reg reg reg outputs"
     "reg reg reg reg outputs"
@@ -432,11 +436,12 @@ body {
 
 .outputs-container {
   grid-area: outputs;
-  background-color: #eee;
+  background-color: #333;
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
   border: 3px solid #333;
   border-top: none;
   border-right: none;
+  border-bottom: none;
   display: flex;
   flex-direction: column;
   justify-content: start;

@@ -20,7 +20,8 @@ const { outputValue } = toRefs(props);
 
 <style scoped>
 .output {
-  padding: 2rem;
+  padding: 1rem 2rem;
+  text-align: center;
   background-color: #333;
   color: #fff;
   font-size: 2rem;

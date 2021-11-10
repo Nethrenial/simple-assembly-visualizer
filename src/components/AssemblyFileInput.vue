@@ -39,18 +39,19 @@ const handleFileUpload = (e: Event) => {
 label {
   background-color: rgb(44, 163, 107);
   color: #fff;
-  padding: 10px;
+  padding: 5px 10px;
   font-size: 2rem;
   cursor: pointer;
   margin-left: 2rem;
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease-in-out;
+  border-radius: 5px;
 }
 
 label:hover {
   box-shadow: 5px 5px 12.5px rgba(0, 0, 0, 0.4);
-  background-color: rgb(67, 151, 99);
-  color: rgb(255, 255, 255);
+  color: rgb(67, 151, 99);
+  background-color: rgb(255, 255, 255);
 }
 
 label::active {

@@ -31,12 +31,13 @@ const { outputs } = toRefs(props);
 <style scoped>
 h2 {
   text-align: center;
-  margin: 2rem;
-  font-size: 4rem;
+  margin: 1rem;
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 3rem;
   font-weight: 200;
   color: #fff;
-  background-color: teal;
-  height: 10%;
+  background-color: rgb(10, 153, 134);
   width: 90%;
 }
 .outputs {
@@ -46,6 +47,10 @@ h2 {
   align-items: center;
   background-color: #fff;
   min-height: 80%;
+  max-height: 100%;
   width: 90%;
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 1rem;
 }
 </style>
