@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { PropType, toRefs } from "vue";
-import { Reg } from "../types/reg";
+import { Reg, SingleRegister } from "../types/reg";
 import Register from "./Register.vue";
 
 const props = defineProps({
   reg: {
-    type: Object as PropType<{ [key: string]: number | boolean } & Reg>,
+    type: Object as PropType<{ [key: string]: SingleRegister } & Reg>,
     required: true,
   },
 });
@@ -20,7 +20,7 @@ const { reg } = toRefs(props);
       v-for="(val, key) in reg"
       :key="key"
       :reg-name="key.toString()"
-      :reg-value="val.toString()"
+      :reg-value="val"
     />
   </div>
 </template>

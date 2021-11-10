@@ -1,45 +1,31 @@
 <script lang="ts" setup>
-import { toRefs, watch, ref } from "vue";
+import { toRefs, watch, ref, PropType } from "vue";
+import { SingleRegister } from "../types/reg";
 const props = defineProps({
   regName: {
     type: String,
     required: true,
   },
   regValue: {
-    type: String,
+    type: Object as PropType<SingleRegister>,
     required: true,
   },
 });
 
 const { regName, regValue } = toRefs(props);
-
-watch(regValue, (newValue, oldValue) => {
-  if (newValue !== oldValue) {
-    justChanged.value = true;
-  } else {
-    justUpdated.value = true;
-  }
-  setTimeout(() => {
-    justChanged.value = false;
-    justUpdated.value = false;
-  }, 500);
-});
-
-const justChanged = ref(false);
-const justUpdated = ref(false);
 </script>
 
 <template>
   <div
     class="register"
     :style="{
-      backgroundColor: justChanged ? 'red' : justUpdated ? '#f66c68' : '#333',
+      backgroundColor: regValue.justChanged ? 'red' : '#333',
     }"
   >
     <div class="name">{{ regName }}</div>
 
     <div class="value">
-      {{ regValue }}
+      {{ regValue.val }}
     </div>
   </div>
 </template>

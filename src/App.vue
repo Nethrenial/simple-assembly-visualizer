@@ -6,11 +6,12 @@ import AssemblyFileInput from "./components/AssemblyFileInput.vue";
 import ResetVm from "./components/ResetVm.vue";
 import RegistersContainer from "./components/RegistersContainer.vue";
 import MemoryContainer from "./components/MemoryContainer.vue";
+import ExecuteAll from "./components/ExecuteAll.vue";
 import NextExecution from "./components/NextExecution.vue";
 import PrevExecution from "./components/PrevExecution.vue";
 import Outputs from "./components/Outputs.vue";
 //Import typescript types
-import { Reg } from "./types/reg";
+import { Reg, SingleRegister } from "./types/reg";
 import { State } from "./types/state";
 //Import memory, reg, output, previous state stores
 import { memory, MEM_SIZE } from "./store/memory-store";
@@ -50,58 +51,95 @@ const isPrevButtonDisabled = computed(() => {
   return false;
 });
 
+const isAllButtonDisabled = computed(() => {
+  if (isFinished.value || !isFileUploaded.value) {
+    return true;
+  }
+  return false;
+});
+
 //Function to execute the next instruction
 const executeNext = () => {
   if (instructionLines.length === 0 || !reader) {
     console.log("Not any instructions");
   } else {
-    if (!reg.value["halt"] && !isFinished.value) {
+    if (!reg.value["halt"].val && !isFinished.value) {
       isAtStart.value = false;
-      console.log(nextInstruction.value);
 
       previousStates.value.states.push({
         memoryState: Object.assign({}, memory.value),
         registersState: Object.assign({}, reg.value),
         nextInstruction: `${(
-          memory.value.store[reg.value["pc"]] as string[]
+          memory.value.store[reg.value["pc"].val as number] as string[]
         ).join(" ")}`,
         prevInstruction: `${prevInstruction.value}`,
       });
 
+      for (const iterator of Object.keys(reg.value)) {
+        const register = reg.value[iterator];
+        register.justChanged = false;
+      }
+
       prevInstruction.value = nextInstruction.value;
 
-      let i = reg.value["pc"] as number;
+      let i = reg.value["pc"].val as number;
+
       let instruction =
         instructions[(memory.value.store[i] as string[])[0] as string];
+
       if (((memory.value.store[i] as string[])[0] as string) === "halt") {
         isFinished.value = true;
         previousStates.value.states[
           previousStates.value.states.length - 1
         ].nextInstruction = "halt";
-        console.log(previousStates.value);
       }
       instruction((memory.value.store[i] as string[]).slice(1));
-      reg.value["timer"] = (reg.value["timer"] as number) - 1;
-      if (reg.value["int"] === 1 && reg.value["timer"] === 0) {
-        reg.value["sp"] = (reg.value["sp"] as number) + 1;
-        memory.value.store[reg.value["sp"]] = reg.value["pc"] as number;
+      reg.value["timer"] = {
+        val: (reg.value["timer"].val as number) - 1,
+        justChanged: true,
+      };
+      if (reg.value["int"].val === 1 && reg.value["timer"].val === 0) {
+        reg.value["sp"] = {
+          val: (reg.value["sp"].val as number) + 1,
+          justChanged: true,
+        };
+        memory.value.store[reg.value["sp"].val as number] = reg.value["pc"]
+          .val as number;
         reg.value["pc"] = reg.value["ivec"];
-        reg.value["int"] = 0;
+        reg.value["int"] = { val: 0, justChanged: true };
       }
-      const stringArr = memory.value.store[reg.value["pc"]];
+      const stringArr = memory.value.store[
+        reg.value["pc"].val as number
+      ] as string[];
       if (stringArr) {
-        nextInstruction.value = (stringArr as string[]).join(" ");
+        nextInstruction.value = stringArr.join(" ");
       }
     }
   }
 };
 
-//Function to go back to the previous state
+const executeAll = () => {
+  while (true) {
+    executeNext();
+    if (isFinished.value) {
+      break;
+    }
+  }
+};
+
 const goBack = () => {
   if (previousStates.value.states.length > 0) {
     isFinished.value = false;
     const previousState = previousStates.value.states.pop() as State;
-    reg.value = previousState.registersState;
+
+    for (const iterator of Object.keys(reg.value)) {
+      reg.value[iterator] = {
+        val: previousState.registersState[iterator].val,
+        justChanged: previousState.registersState[iterator].justChanged,
+      };
+    }
+
+    // reg.value = previousState.registersState;
     memory.value = previousState.memoryState;
     nextInstruction.value = previousState.nextInstruction;
     prevInstruction.value = previousState.prevInstruction;
@@ -114,7 +152,6 @@ const goBack = () => {
   }
 };
 
-//Function to load the file and initialize the virtual machine
 const loadFile = (e: Event) => {
   if ((e.target as HTMLInputElement).files?.length != 0) {
     isFileUploaded.value = true;
@@ -134,7 +171,7 @@ const loadFile = (e: Event) => {
         }
       }
       nextInstruction.value = (
-        memory.value.store[reg.value["pc"] as number] as string[]
+        memory.value.store[reg.value["pc"].val as number] as string[]
       ).join(" ");
     };
     file.value = ((e.target as HTMLInputElement).files as FileList)[0].name;
@@ -143,29 +180,43 @@ const loadFile = (e: Event) => {
 };
 
 const reset = () => {
-  reg.value = new Proxy(
-    {
-      a: 0,
-      b: 0,
-      c: 0,
-      d: 0,
-      e: 0,
-      f: 0,
-      sp: 0,
-      acc: 0,
-      pc: 0,
-      ivec: 0,
-      int: 0,
-      timer: 0,
-      halt: false,
-    } as { [key: string]: number | boolean },
-    {
-      set: (obj, prop, value) => {
-        obj[prop as string] = value;
-        return true;
-      },
+  for (const register of Object.keys(reg.value)) {
+    if (register === "halt") {
+      reg.value[register] = {
+        val: false,
+        justChanged: false,
+      };
+    } else {
+      reg.value[register] = {
+        val: 0,
+        justChanged: false,
+      };
     }
-  ) as { [key: string]: number | boolean } & Reg;
+  }
+
+  // reg.value = new Proxy(
+  //   {
+  //     a: { val: 0, justChanged: false },
+  //     b: { val: 0, justChanged: false },
+  //     c: { val: 0, justChanged: false },
+  //     d: { val: 0, justChanged: false },
+  //     e: { val: 0, justChanged: false },
+  //     f: { val: 0, justChanged: false },
+  //     sp: { val: 0, justChanged: false },
+  //     acc: { val: 0, justChanged: false },
+  //     pc: { val: 0, justChanged: false },
+  //     ivec: { val: 0, justChanged: false },
+  //     int: { val: 0, justChanged: false },
+  //     timer: { val: 0, justChanged: false },
+  //     halt: { val: false, justChanged: false },
+  //   } as { [key: string]: SingleRegister },
+  //   {
+  //     set: (obj, prop, value) => {
+  //       obj[prop as string] = value;
+  //       return true;
+  //     },
+  //   }
+  // ) as { [key: string]: SingleRegister } & Reg;
   memory.value.store = new Array(MEM_SIZE).fill(0);
   isFileUploaded.value = false;
   isFinished.value = false;
@@ -190,6 +241,7 @@ const reset = () => {
       <ResetVm @click="reset" />
       <PrevExecution @click="goBack" :is-disabled="isPrevButtonDisabled" />
       <NextExecution @click="executeNext" :is-disabled="isNextButtonDisabled" />
+      <ExecuteAll @click="executeAll" :is-disabled="isAllButtonDisabled" />
     </div>
 
     <div class="instructions">
@@ -313,7 +365,7 @@ body {
   background-color: #eee;
   margin-top: 50px;
   display: grid;
-  min-height: calc(100vh - 50px);
+  max-height: calc(100vh-50px);
   grid-template-areas:
     "reg reg reg reg outputs"
     "reg reg reg reg outputs"
@@ -345,6 +397,7 @@ body {
   flex-direction: column;
   justify-content: start;
   align-items: center;
+  height: calc(100vh - 50px);
 }
 
 ul {

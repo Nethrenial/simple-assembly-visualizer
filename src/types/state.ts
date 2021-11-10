@@ -1,9 +1,9 @@
-import { Reg } from "./reg";
+import { Reg, SingleRegister } from "./reg";
 import { Memory } from "./memory";
 
 export interface State {
   memoryState: Memory;
-  registersState: Reg & { [key: string]: number | boolean };
+  registersState: Reg & { [key: string]: SingleRegister };
   nextInstruction: string;
   prevInstruction: string;
 }
