@@ -58,6 +58,24 @@ const isAllButtonDisabled = computed(() => {
   return false;
 });
 
+document.addEventListener("keydown", (e) => {
+  const key = e.key;
+  switch (key) {
+    case "ArrowRight":
+      executeNext();
+      break;
+    case "ArrowLeft":
+      goBack();
+      break;
+    case "Enter":
+      executeAll();
+      break;
+
+    default:
+      break;
+  }
+});
+
 //Function to execute the next instruction
 const executeNext = () => {
   if (instructionLines.length === 0 || !reader) {
