@@ -7,3 +7,7 @@ export interface State {
   nextInstruction: string;
   prevInstruction: string;
 }
+
+export interface PrevoiusStates {
+  states: Array<State>;
+}

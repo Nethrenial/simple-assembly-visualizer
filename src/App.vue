@@ -1,151 +1,48 @@
 <script setup lang="ts">
+//Import the vue functions
 import { ref, Ref, computed } from "vue";
+//Import vue components
 import AssemblyFileInput from "./components/AssemblyFileInput.vue";
 import ResetVm from "./components/ResetVm.vue";
 import RegistersContainer from "./components/RegistersContainer.vue";
 import MemoryContainer from "./components/MemoryContainer.vue";
 import NextExecution from "./components/NextExecution.vue";
 import PrevExecution from "./components/PrevExecution.vue";
-
-import { Reg } from "./types/reg";
-import { OutputList } from "./types/output";
-import { Memory } from "./types/memory";
 import Outputs from "./components/Outputs.vue";
+//Import typescript types
+import { Reg } from "./types/reg";
 import { State } from "./types/state";
+//Import memory, reg, output, previous state stores
+import { memory, MEM_SIZE } from "./store/memory-store";
+import { reg } from "./store/register-store";
+import { instructions } from "./store/instructions-store";
+import { outputs } from "./store/outputs-store";
+import { previousStates } from "./store/prev-states";
 
-const MEM_SIZE = 100;
-
-let reg = ref(
-  new Proxy(
-    {
-      a: 0,
-      b: 0,
-      c: 0,
-      d: 0,
-      e: 0,
-      f: 0,
-      sp: 0,
-      acc: 0,
-      pc: 0,
-      ivec: 0,
-      int: 0,
-      timer: 0,
-      halt: false,
-    } as { [key: string]: number | boolean } & Reg,
-    {
-      set: (obj, prop, value) => {
-        obj[prop as string] = value;
-        return true;
-      },
-    }
-  )
-);
-
-// let memory: Array<string[] | number> = new Array(MEM_SIZE).fill(0);
-let memory: Ref<Memory> = ref({ store: new Array(MEM_SIZE).fill(0) });
-
-const instructions: { [key: string]: Function } = {
-  mov: (opr: [string, string]) => {
-    reg.value[opr[0]] = reg.value[opr[1]];
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  movv: (opr: [string, string]) => {
-    reg.value[opr[0]] = Number.parseInt(opr[1]);
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  load: (opr: [string, string]) => {
-    reg.value[opr[0]] = memory.value.store[Number.parseInt(opr[1])] as number;
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  loadr: (opr: [string, string]) => {
-    reg.value[opr[0]] = memory.value.store[
-      reg.value[opr[1]] as number
-    ] as number;
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  store: (opr: [string, string]) => {
-    memory.value.store[Number.parseInt(opr[0])] = reg.value[opr[1]] as number;
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  storer: (opr: [string, string]) => {
-    memory.value.store[reg.value[opr[0]] as number] = reg.value[
-      opr[1]
-    ] as number;
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  add: (opr: [string, string]) => {
-    reg.value["acc"] =
-      (reg.value[opr[0]] as number) + (reg.value[opr[1]] as number);
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  sub: (opr: [string, string]) => {
-    reg.value["acc"] =
-      (reg.value[opr[0]] as number) - (reg.value[opr[1]] as number);
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  mod: (opr: [string, string]) => {
-    reg.value["acc"] =
-      (reg.value[opr[0]] as number) % (reg.value[opr[1]] as number);
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  call: (opr: [string, string]) => {
-    reg.value["sp"] = (reg.value["sp"] as number) + 1;
-    memory.value.store[reg.value["sp"]] = (reg.value["pc"] as number) + 1;
-    reg.value["pc"] = Number.parseInt(opr[0]);
-  },
-  ret: () => {
-    reg.value["pc"] = memory.value.store[reg.value["sp"] as number] as number;
-    reg.value["sp"] = (reg.value["sp"] as number) - 1;
-  },
-  out: (opr: [string, string]) => {
-    console.log(reg.value[opr[0]]);
-    outputs.value.outputs.push(reg.value[opr[0]] as number);
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  push: (opr: [string, string]) => {
-    reg.value["sp"] = (reg.value["sp"] as number) + 1;
-    memory.value.store[reg.value["sp"]] = reg.value[opr[0]] as number;
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  pop: (opr: [string, string]) => {
-    reg.value[opr[0]] = memory.value.store[reg.value["sp"] as number] as number;
-    reg.value["sp"] = (reg.value["sp"] as number) - 1;
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-  jmp: (opr: [string]) => {
-    reg.value["pc"] = Number.parseInt(opr[0]);
-  },
-  jnz: (opr: [string, string]) => {
-    if (reg.value[opr[1]] !== 0) {
-      reg.value["pc"] = Number.parseInt(opr[0]);
-    } else {
-      reg.value["pc"] = (reg.value["pc"] as number) + 1;
-    }
-  },
-  halt: () => {
-    reg.value["halt"] = true;
-    reg.value["pc"] = (reg.value["pc"] as number) + 1;
-  },
-};
-
+//Ref to see if a file is uploaded
 const isFileUploaded = ref(false);
-
+//Ref to hold the file name
 const file = ref("");
+//Ref to a file reader
 let reader: FileReader | null = null;
+//Ref to hold the instruction list
 let instructionLines: string[] = [];
+//Ref to the next instruction
 let nextInstruction = ref("");
+//Ref to the previous instruction
 let prevInstruction = ref("");
-
-const previousStates: Ref<Array<State>> = ref([]);
-
+//Ref to see if program is finished
 const isFinished = ref(false);
+//Ref to see of program is at start
 const isAtStart = ref(true);
+//Computed property to disable the next button if needed
 const isNextButtonDisabled = computed(() => {
   if (isFinished.value || !isFileUploaded.value) {
     return true;
   }
   return false;
 });
+//Computed property to disable the prev button if needed
 const isPrevButtonDisabled = computed(() => {
   if (isAtStart.value || !isFileUploaded.value) {
     return true;
@@ -153,6 +50,7 @@ const isPrevButtonDisabled = computed(() => {
   return false;
 });
 
+//Function to execute the next instruction
 const executeNext = () => {
   if (instructionLines.length === 0 || !reader) {
     console.log("Not any instructions");
@@ -161,7 +59,7 @@ const executeNext = () => {
       isAtStart.value = false;
       console.log(nextInstruction.value);
 
-      previousStates.value.push({
+      previousStates.value.states.push({
         memoryState: Object.assign({}, memory.value),
         registersState: Object.assign({}, reg.value),
         nextInstruction: `${(
@@ -177,8 +75,9 @@ const executeNext = () => {
         instructions[(memory.value.store[i] as string[])[0] as string];
       if (((memory.value.store[i] as string[])[0] as string) === "halt") {
         isFinished.value = true;
-        previousStates.value[previousStates.value.length - 1].nextInstruction =
-          "halt";
+        previousStates.value.states[
+          previousStates.value.states.length - 1
+        ].nextInstruction = "halt";
         console.log(previousStates.value);
       }
       instruction((memory.value.store[i] as string[]).slice(1));
@@ -197,10 +96,11 @@ const executeNext = () => {
   }
 };
 
+//Function to go back to the previous state
 const goBack = () => {
-  if (previousStates.value.length > 0) {
+  if (previousStates.value.states.length > 0) {
     isFinished.value = false;
-    const previousState = previousStates.value.pop() as State;
+    const previousState = previousStates.value.states.pop() as State;
     reg.value = previousState.registersState;
     memory.value = previousState.memoryState;
     nextInstruction.value = previousState.nextInstruction;
@@ -208,12 +108,13 @@ const goBack = () => {
     if (previousState.nextInstruction.startsWith("out")) {
       outputs.value.outputs.pop();
     }
-    if (previousStates.value.length === 0) {
+    if (previousStates.value.states.length === 0) {
       isAtStart.value = true;
     }
   }
 };
 
+//Function to load the file and initialize the virtual machine
 const loadFile = (e: Event) => {
   if ((e.target as HTMLInputElement).files?.length != 0) {
     isFileUploaded.value = true;
@@ -240,8 +141,6 @@ const loadFile = (e: Event) => {
     reader.readAsText(((e.target as HTMLInputElement).files as FileList)[0]);
   }
 };
-
-const outputs = ref({ outputs: [] } as OutputList);
 
 const reset = () => {
   reg.value = new Proxy(
@@ -271,7 +170,7 @@ const reset = () => {
   isFileUploaded.value = false;
   isFinished.value = false;
   isAtStart.value = true;
-  previousStates.value = [];
+  previousStates.value.states = [];
   outputs.value = {
     outputs: [],
   };
