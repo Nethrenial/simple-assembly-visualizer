@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { PropType, toRefs } from "vue";
-import { OutputList } from "../types/output";
 import Output from "./Output.vue";
 
 const props = defineProps({
   outputs: {
-    type: Object as PropType<OutputList>,
+    type: Object as PropType<Array<number>>,
     required: true,
   },
 });
@@ -16,11 +15,8 @@ const { outputs } = toRefs(props);
 <template>
   <h2>Outputs</h2>
   <div class="outputs">
-    <!-- <div v-for="(output, index) in outputs" :key="index">
-      {{ index + 1 }} : {{ output }}
-    </div> -->
     <Output
-      v-for="(output, index) in outputs.outputs"
+      v-for="(output, index) in outputs"
       :key="index"
       :index="index"
       :output-value="output"

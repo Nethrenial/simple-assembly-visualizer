@@ -1,4 +1,3 @@
-import { ref } from "vue";
-import { OutputList } from "../types/output";
+import { ref, Ref } from "vue";
 
-export const outputs = ref({ outputs: [] } as OutputList);
+export const outputs: Ref<Array<number>> = ref([]);

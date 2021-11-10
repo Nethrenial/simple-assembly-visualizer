@@ -1,13 +1,11 @@
-import { Reg, SingleRegister } from "./reg";
-import { Memory } from "./memory";
+import { Reg } from "./reg";
 
 export interface State {
-  memoryState: Memory;
-  registersState: Reg & { [key: string]: SingleRegister };
+  memoryState: Array<number | string[]>;
+  registersState: Reg & { [key: string]: number | boolean };
   nextInstruction: string;
   prevInstruction: string;
+  highLightedRegisters: string[];
 }
 
-export interface PrevoiusStates {
-  states: Array<State>;
-}
+export type States = State[];

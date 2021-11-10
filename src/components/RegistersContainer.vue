@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import { PropType, toRefs } from "vue";
-import { Reg, SingleRegister } from "../types/reg";
+import { PropType, toRefs, watch } from "vue";
+import { Reg } from "../types/reg";
 import Register from "./Register.vue";
 
 const props = defineProps({
   reg: {
-    type: Object as PropType<{ [key: string]: SingleRegister } & Reg>,
+    type: Object as PropType<{ [key: string]: number | boolean } & Reg>,
     required: true,
   },
 });
-
-const { reg } = toRefs(props);
 </script>
 
 <template>

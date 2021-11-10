@@ -6,11 +6,12 @@ const props = defineProps({
     required: true,
   },
 });
+
 const { isDisabled } = toRefs(props);
 </script>
 
 <template>
-  <button :disabled="isDisabled">Execute All</button>
+  <button :disabled="isDisabled">To start</button>
 </template>
 
 <style scoped>

@@ -7,18 +7,19 @@ import ResetVm from "./components/ResetVm.vue";
 import RegistersContainer from "./components/RegistersContainer.vue";
 import MemoryContainer from "./components/MemoryContainer.vue";
 import ExecuteAll from "./components/ExecuteAll.vue";
+import BackToStart from "./components/BackToStart.vue";
 import NextExecution from "./components/NextExecution.vue";
 import PrevExecution from "./components/PrevExecution.vue";
 import Outputs from "./components/Outputs.vue";
 //Import typescript types
-import { Reg, SingleRegister } from "./types/reg";
+import { Reg } from "./types/reg";
 import { State } from "./types/state";
 //Import memory, reg, output, previous state stores
 import { memory, MEM_SIZE } from "./store/memory-store";
 import { reg } from "./store/register-store";
 import { instructions } from "./store/instructions-store";
 import { outputs } from "./store/outputs-store";
-import { previousStates } from "./store/prev-states";
+import { states } from "./store/prev-states";
 
 //Ref to see if a file is uploaded
 const isFileUploaded = ref(false);
@@ -58,6 +59,13 @@ const isAllButtonDisabled = computed(() => {
   return false;
 });
 
+const isBackToStartButtonDisabled = computed(() => {
+  if (isAtStart.value || !isFileUploaded.value) {
+    return true;
+  }
+  return false;
+});
+
 document.addEventListener("keydown", (e) => {
   const key = e.key;
   switch (key) {
@@ -76,59 +84,60 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+const resetRegisterStyles = () => {
+  for (const key of Object.keys(reg.value)) {
+    const register = document.querySelector(`.${key}-value`) as HTMLElement;
+    register.classList.remove("highlighted");
+  }
+};
+
 //Function to execute the next instruction
 const executeNext = () => {
   if (instructionLines.length === 0 || !reader) {
     console.log("Not any instructions");
   } else {
-    if (!reg.value["halt"].val && !isFinished.value) {
+    if (!reg.value["halt"] && !isFinished.value) {
       isAtStart.value = false;
 
-      previousStates.value.states.push({
+      const hs = [];
+      for (const key of Object.keys(reg.value)) {
+        const register = document.querySelector(`.${key}-value`) as HTMLElement;
+        if (register.classList.contains("highlighted")) {
+          hs.push(key);
+        }
+      }
+      resetRegisterStyles();
+
+      states.value.push({
         memoryState: Object.assign({}, memory.value),
         registersState: Object.assign({}, reg.value),
         nextInstruction: `${(
-          memory.value.store[reg.value["pc"].val as number] as string[]
+          memory.value[reg.value["pc"] as number] as string[]
         ).join(" ")}`,
         prevInstruction: `${prevInstruction.value}`,
+        highLightedRegisters: hs,
       });
-
-      for (const iterator of Object.keys(reg.value)) {
-        const register = reg.value[iterator];
-        register.justChanged = false;
-      }
 
       prevInstruction.value = nextInstruction.value;
 
-      let i = reg.value["pc"].val as number;
+      let i = reg.value["pc"] as number;
 
       let instruction =
-        instructions[(memory.value.store[i] as string[])[0] as string];
+        instructions[(memory.value[i] as string[])[0] as string];
 
-      if (((memory.value.store[i] as string[])[0] as string) === "halt") {
+      if (((memory.value[i] as string[])[0] as string) === "halt") {
         isFinished.value = true;
-        previousStates.value.states[
-          previousStates.value.states.length - 1
-        ].nextInstruction = "halt";
+        states.value[states.value.length - 1].nextInstruction = "halt";
       }
-      instruction((memory.value.store[i] as string[]).slice(1));
-      reg.value["timer"] = {
-        val: (reg.value["timer"].val as number) - 1,
-        justChanged: true,
-      };
-      if (reg.value["int"].val === 1 && reg.value["timer"].val === 0) {
-        reg.value["sp"] = {
-          val: (reg.value["sp"].val as number) + 1,
-          justChanged: true,
-        };
-        memory.value.store[reg.value["sp"].val as number] = reg.value["pc"]
-          .val as number;
+      instruction((memory.value[i] as string[]).slice(1));
+      reg.value["timer"] = (reg.value["timer"] as number) - 1;
+      if (reg.value["int"] === 1 && reg.value["timer"] === 0) {
+        reg.value["sp"] = (reg.value["sp"] as number) + 1;
+        memory.value[reg.value["sp"] as number] = reg.value["pc"] as number;
         reg.value["pc"] = reg.value["ivec"];
-        reg.value["int"] = { val: 0, justChanged: true };
+        reg.value["int"] = 0;
       }
-      const stringArr = memory.value.store[
-        reg.value["pc"].val as number
-      ] as string[];
+      const stringArr = memory.value[reg.value["pc"] as number] as string[];
       if (stringArr) {
         nextInstruction.value = stringArr.join(" ");
       }
@@ -145,26 +154,63 @@ const executeAll = () => {
   }
 };
 
-const goBack = () => {
-  if (previousStates.value.states.length > 0) {
-    isFinished.value = false;
-    const previousState = previousStates.value.states.pop() as State;
-
-    for (const iterator of Object.keys(reg.value)) {
-      reg.value[iterator] = {
-        val: previousState.registersState[iterator].val,
-        justChanged: previousState.registersState[iterator].justChanged,
-      };
+const toStart = () => {
+  while (true) {
+    goBack();
+    if (isAtStart.value) {
+      break;
     }
+  }
+};
 
-    // reg.value = previousState.registersState;
+const goBack = () => {
+  if (states.value.length > 0) {
+    isFinished.value = false;
+    const previousState = states.value.pop() as State;
+
+    resetRegisterStyles();
+
+    reg.value = new Proxy(
+      {
+        a: previousState.registersState.a,
+        b: previousState.registersState.b,
+        c: previousState.registersState.c,
+        d: previousState.registersState.d,
+        e: previousState.registersState.e,
+        f: previousState.registersState.f,
+        sp: previousState.registersState.sp,
+        acc: previousState.registersState.acc,
+        pc: previousState.registersState.pc,
+        ivec: previousState.registersState.ivec,
+        int: previousState.registersState.int,
+        timer: previousState.registersState.timer,
+        halt: previousState.registersState.halt,
+      } as {
+        [key: string]: number | boolean;
+      } & Reg,
+      {
+        set: (target, key: string, value) => {
+          const register = document.querySelector(
+            `.${key}-value`
+          ) as HTMLElement;
+          register.classList.add("highlighted");
+          target[key] = value;
+          return true;
+        },
+      }
+    );
+
+    previousState.highLightedRegisters.forEach((reg) => {
+      const register = document.querySelector(`.${reg}-value`) as HTMLElement;
+      register.classList.add("highlighted");
+    });
     memory.value = previousState.memoryState;
     nextInstruction.value = previousState.nextInstruction;
     prevInstruction.value = previousState.prevInstruction;
     if (previousState.nextInstruction.startsWith("out")) {
-      outputs.value.outputs.pop();
+      outputs.value.pop();
     }
-    if (previousStates.value.states.length === 0) {
+    if (states.value.length === 0) {
       isAtStart.value = true;
     }
   }
@@ -184,12 +230,11 @@ const loadFile = (e: Event) => {
         }
         const instruction = line.split(" ");
         if (instruction.length > 0) {
-          memory.value.store[Number.parseInt(instruction[0])] =
-            instruction.slice(1);
+          memory.value[Number.parseInt(instruction[0])] = instruction.slice(1);
         }
       }
       nextInstruction.value = (
-        memory.value.store[reg.value["pc"].val as number] as string[]
+        memory.value[reg.value["pc"] as number] as string[]
       ).join(" ");
     };
     file.value = ((e.target as HTMLInputElement).files as FileList)[0].name;
@@ -198,53 +243,43 @@ const loadFile = (e: Event) => {
 };
 
 const reset = () => {
-  for (const register of Object.keys(reg.value)) {
-    if (register === "halt") {
-      reg.value[register] = {
-        val: false,
-        justChanged: false,
-      };
-    } else {
-      reg.value[register] = {
-        val: 0,
-        justChanged: false,
-      };
+  reg.value = new Proxy(
+    {
+      a: 0,
+      b: 0,
+      c: 0,
+      d: 0,
+      e: 0,
+      f: 0,
+      sp: 0,
+      acc: 0,
+      pc: 0,
+      ivec: 0,
+      int: 0,
+      timer: 0,
+      halt: false,
+    } as {
+      [key: string]: number | boolean;
+    } & Reg,
+    {
+      set: (target, key: string, value) => {
+        // console.log(`${key} was changed`);
+        const register = document.querySelector(`.${key}-value`) as HTMLElement;
+        register.classList.add("highlighted");
+        target[key] = value;
+        return true;
+      },
     }
-  }
-
-  // reg.value = new Proxy(
-  //   {
-  //     a: { val: 0, justChanged: false },
-  //     b: { val: 0, justChanged: false },
-  //     c: { val: 0, justChanged: false },
-  //     d: { val: 0, justChanged: false },
-  //     e: { val: 0, justChanged: false },
-  //     f: { val: 0, justChanged: false },
-  //     sp: { val: 0, justChanged: false },
-  //     acc: { val: 0, justChanged: false },
-  //     pc: { val: 0, justChanged: false },
-  //     ivec: { val: 0, justChanged: false },
-  //     int: { val: 0, justChanged: false },
-  //     timer: { val: 0, justChanged: false },
-  //     halt: { val: false, justChanged: false },
-  //   } as { [key: string]: SingleRegister },
-  //   {
-  //     set: (obj, prop, value) => {
-  //       obj[prop as string] = value;
-  //       return true;
-  //     },
-  //   }
-  // ) as { [key: string]: SingleRegister } & Reg;
-  memory.value.store = new Array(MEM_SIZE).fill(0);
+  );
+  memory.value = new Array(MEM_SIZE).fill(0);
   isFileUploaded.value = false;
   isFinished.value = false;
   isAtStart.value = true;
-  previousStates.value.states = [];
-  outputs.value = {
-    outputs: [],
-  };
+  states.value = [];
+  outputs.value = [];
   nextInstruction.value = "";
   prevInstruction.value = "";
+  resetRegisterStyles();
 };
 </script>
 
@@ -257,6 +292,10 @@ const reset = () => {
         :file-name="file"
       />
       <ResetVm @click="reset" />
+      <BackToStart
+        @click="toStart"
+        :is-disabled="isBackToStartButtonDisabled"
+      />
       <PrevExecution @click="goBack" :is-disabled="isPrevButtonDisabled" />
       <NextExecution @click="executeNext" :is-disabled="isNextButtonDisabled" />
       <ExecuteAll @click="executeAll" :is-disabled="isAllButtonDisabled" />
@@ -290,7 +329,7 @@ const reset = () => {
       <RegistersContainer :reg="reg" />
     </div>
     <div class="memory-container">
-      <MemoryContainer :store="memory.store" />
+      <MemoryContainer :memory="memory" />
     </div>
     <div class="outputs-container">
       <Outputs :outputs="outputs" />

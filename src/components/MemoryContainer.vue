@@ -3,13 +3,13 @@ import { PropType, toRefs } from "vue";
 import MemBlock from "./MemBlock.vue";
 
 const props = defineProps({
-  store: {
+  memory: {
     type: Object as PropType<Array<number | string[]>>,
     required: true,
   },
 });
 
-const { store } = toRefs(props);
+const { memory } = toRefs(props);
 // console.log(memory);
 </script>
 
@@ -17,10 +17,10 @@ const { store } = toRefs(props);
   <h2>Memory</h2>
   <div class="memory">
     <MemBlock
-      v-for="(val, index) in store"
+      v-for="(val, index) in memory"
       :class="typeof val === 'number' ? '' : 'hidden'"
       :index="index"
-      :value="typeof val === 'number' ? val : 0"
+      :value="typeof val === 'number' ? val.toString() : '0'"
     />
   </div>
 </template>

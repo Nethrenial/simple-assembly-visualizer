@@ -1,4 +1,4 @@
 import { Ref, ref } from "vue";
-import { PrevoiusStates } from "../types/state";
+import { States } from "../types/state";
 
-export const previousStates: Ref<PrevoiusStates> = ref({ states: [] });
+export const states: Ref<States> = ref([]);

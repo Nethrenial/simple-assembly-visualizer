@@ -1,13 +1,12 @@
 <script lang="ts" setup>
 import { toRefs, watch, ref, PropType } from "vue";
-import { SingleRegister } from "../types/reg";
 const props = defineProps({
   regName: {
     type: String,
     required: true,
   },
   regValue: {
-    type: Object as PropType<SingleRegister>,
+    type: Object as PropType<number | boolean>,
     required: true,
   },
 });
@@ -16,16 +15,11 @@ const { regName, regValue } = toRefs(props);
 </script>
 
 <template>
-  <div
-    class="register"
-    :style="{
-      backgroundColor: regValue.justChanged ? 'red' : '#333',
-    }"
-  >
+  <div :class="`register`">
     <div class="name">{{ regName }}</div>
 
-    <div class="value">
-      {{ regValue.val }}
+    <div :class="`value ${regName}-value `">
+      {{ regValue }}
     </div>
   </div>
 </template>
@@ -51,5 +45,9 @@ const { regName, regValue } = toRefs(props);
 
 span {
   font-weight: bold;
+}
+
+.highlighted {
+  background-color: red;
 }
 </style>

@@ -6,38 +6,16 @@ const props = defineProps({
     required: true,
   },
   value: {
-    type: Number,
+    type: String,
     required: true,
   },
 });
 
 const { index, value } = toRefs(props);
-
-watch(value, (newValue, oldValue) => {
-  // console.log(`${index.value} = ${oldValue} => ${newValue} `);
-
-  if (newValue !== oldValue) {
-    justChanged.value = true;
-  } else {
-    justUpdated.value = true;
-  }
-  setTimeout(() => {
-    justChanged.value = false;
-    justUpdated.value = false;
-  }, 500);
-});
-
-const justChanged = ref(false);
-const justUpdated = ref(false);
 </script>
 
 <template>
-  <div
-    class="mem-block"
-    :style="{
-      backgroundColor: justChanged ? 'red' : justUpdated ? '#f66c68' : '#333',
-    }"
-  >
+  <div class="mem-block">
     <div class="index">{{ index }}</div>
     <div class="value">
       {{ value }}

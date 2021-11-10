@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { toRefs } from "vue";
 const props = defineProps({
   isDisabled: {
     type: Boolean,
     required: true,
   },
 });
+const { isDisabled } = toRefs(props);
 </script>
 
 <template>
