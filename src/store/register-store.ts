@@ -23,7 +23,9 @@ export const reg = ref(
     {
       set: (target, key: string, value) => {
         // console.log(`${key} was changed`);
-        const register = document.querySelector(`.${key}-value`) as HTMLElement;
+        const register = document.querySelector(
+          `.register-${key}`
+        ) as HTMLElement;
         register.classList.add("highlighted");
         target[key] = value;
         return true;

@@ -15,10 +15,10 @@ const { regName, regValue } = toRefs(props);
 </script>
 
 <template>
-  <div :class="`register`">
+  <div :class="`register register-${regName}`">
     <div class="name">{{ regName }}</div>
 
-    <div :class="`value ${regName}-value `">
+    <div :class="`value  `">
       {{ regValue }}
     </div>
   </div>

@@ -86,8 +86,20 @@ document.addEventListener("keydown", (e) => {
 
 const resetRegisterStyles = () => {
   for (const key of Object.keys(reg.value)) {
-    const register = document.querySelector(`.${key}-value`) as HTMLElement;
+    const register = document.querySelector(`.register-${key}`) as HTMLElement;
     register.classList.remove("highlighted");
+  }
+};
+
+const resetMemBlockStyles = () => {
+  for (let index = 0; index < memory.value.length; index++) {
+    const element = memory.value[index];
+    if (typeof element === "number") {
+      const memblock = document.querySelector(
+        `.memblock-${index}`
+      ) as HTMLElement;
+      memblock.classList.remove("highlighted");
+    }
   }
 };
 
@@ -99,14 +111,30 @@ const executeNext = () => {
     if (!reg.value["halt"] && !isFinished.value) {
       isAtStart.value = false;
 
-      const hs = [];
+      const hsg: string[] = [];
+      const hsm: number[] = [];
       for (const key of Object.keys(reg.value)) {
-        const register = document.querySelector(`.${key}-value`) as HTMLElement;
+        const register = document.querySelector(
+          `.register-${key}`
+        ) as HTMLElement;
         if (register.classList.contains("highlighted")) {
-          hs.push(key);
+          hsg.push(key);
         }
       }
+      for (let index = 0; index < memory.value.length; index++) {
+        const element = memory.value[index];
+        if (typeof element === "number") {
+          const memblock = document.querySelector(
+            `.memblock-${index}`
+          ) as HTMLElement;
+          if (memblock.classList.contains("highlighted")) {
+            hsm.push(index);
+          }
+        }
+      }
+
       resetRegisterStyles();
+      resetMemBlockStyles();
 
       states.value.push({
         memoryState: Object.assign({}, memory.value),
@@ -115,7 +143,8 @@ const executeNext = () => {
           memory.value[reg.value["pc"] as number] as string[]
         ).join(" ")}`,
         prevInstruction: `${prevInstruction.value}`,
-        highLightedRegisters: hs,
+        highLightedRegisters: hsg,
+        highLightedMemBlocks: hsm,
       });
 
       prevInstruction.value = nextInstruction.value;
@@ -191,7 +220,7 @@ const goBack = () => {
       {
         set: (target, key: string, value) => {
           const register = document.querySelector(
-            `.${key}-value`
+            `.register-${key}`
           ) as HTMLElement;
           register.classList.add("highlighted");
           target[key] = value;
@@ -201,7 +230,9 @@ const goBack = () => {
     );
 
     previousState.highLightedRegisters.forEach((reg) => {
-      const register = document.querySelector(`.${reg}-value`) as HTMLElement;
+      const register = document.querySelector(
+        `.register-${reg}`
+      ) as HTMLElement;
       register.classList.add("highlighted");
     });
     memory.value = previousState.memoryState;
@@ -264,7 +295,9 @@ const reset = () => {
     {
       set: (target, key: string, value) => {
         // console.log(`${key} was changed`);
-        const register = document.querySelector(`.${key}-value`) as HTMLElement;
+        const register = document.querySelector(
+          `.register-${key}`
+        ) as HTMLElement;
         register.classList.add("highlighted");
         target[key] = value;
         return true;

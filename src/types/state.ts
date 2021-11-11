@@ -6,6 +6,7 @@ export interface State {
   nextInstruction: string;
   prevInstruction: string;
   highLightedRegisters: string[];
+  highLightedMemBlocks: number[];
 }
 
 export type States = State[];

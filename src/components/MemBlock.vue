@@ -15,7 +15,7 @@ const { index, value } = toRefs(props);
 </script>
 
 <template>
-  <div class="mem-block">
+  <div :class="`mem-block memblock-${index}`">
     <div class="index">{{ index }}</div>
     <div class="value">
       {{ value }}
@@ -50,5 +50,9 @@ const { index, value } = toRefs(props);
   min-width: 5rem;
   padding: 0.7rem 0;
   width: auto;
+}
+
+.highlighted {
+  background-color: red;
 }
 </style>
